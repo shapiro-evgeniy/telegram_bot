@@ -52,18 +52,14 @@ def start_conversation_callback_query_handle(update: telegram.Update, context: t
     if query.data == 'start_order':        
         return order_conversation_manager.start_order_command(orderConversationInputData, orderConversationRepondent)     
 
-    keyboard = []    
     orders_repository = OrdersRepository(OrderSerializer())
     user_orders = orders_repository.get_order_names_for_user(query.from_user.name)
 
     if not user_orders or len(user_orders) == 0:
         return start_command_internal(update, reply_to_query)
 
-    for order in user_orders:     
-        keyboard.append([InlineKeyboardButton(f"{order}", callback_data=order)])
-    
-    reply_to_query(update, 'נא לבחור', reply_markup=InlineKeyboardMarkup(keyboard, row_width = 1))
-    
+    orderConversationRepondent.respond_menu('נא לבחור', { o : o for o in user_orders})
+        
     return SELECT_EXISTSING_ORDER        
 
 def select_existing_order_callback_query_handle(update: telegram.Update, context: telegram.ext.CallbackContext):

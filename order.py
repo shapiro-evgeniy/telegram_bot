@@ -82,7 +82,7 @@ class OrdersRepository():
             for file in files:
                 filename, file_extension = os.path.splitext(file)
                 if file_extension == '.json':
-                    orders.append(filename)
+                    orders.append(f'{filename} nis')
 
         return orders
 
