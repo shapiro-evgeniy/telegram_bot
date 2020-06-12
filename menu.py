@@ -64,7 +64,7 @@ class Menu(object):
         
         self.tree.show()
 
-    def get_menu_item(self, id_menu_item):
+    def get_menu_item(self, id_menu_item: str) -> MenuItem:
         menu_node = self.tree.get_node(id_menu_item)
         if menu_node == None:
             return None

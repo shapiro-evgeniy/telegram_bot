@@ -2,185 +2,95 @@ import telegram.ext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (MessageHandler, CallbackQueryHandler, Filters, ConversationHandler,Updater,CommandHandler)
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove)
-import os.path
-from os import path
-import time
-import ast
 from menu import (Menu, MenuGroup, MenuItem, MenuSerializer)
-from order import (Order, OrderItem, OrderSerializer)
-from query_handlers import OperationOrderQueryHadler
-from order_conversation_manager import OrderConversationManager
+from order import (Order, OrderItem, OrderSerializer, OrdersRepository)
+from query_handlers import OperationOrderQueryHadler, OrderConversationInputDataType
+from order_conversation_manager import OrderConversationManager, TelegramBotOrderConversationInputData, TelegramBotOrderConversationRepondent
 import orderstate
 
 order_conversation_manager = OrderConversationManager()
-
-# menu = Menu()
-# order = None
-# menu_group_items = menu.get_menu_items()
-# current_menu_item = None
 
 u = Updater('1175700257:AAF9HNQTnA1IOXAas1uShROLU2Jt4_OMwEo', use_context=True)
 j = u.job_queue
 crossIcon = u"\u274C"
 checkIcon = u"\u2705" 
 
-# def append_menu_group_keyboard(menu_group: MenuGroup, keyboard: list):
-#     keyboard.append([InlineKeyboardButton(f'{menu_group.name}', callback_data=f'menu_group:{menu_group.id}')])
+START_CONVERSATION, SELECT_EXISTSING_ORDER = range(2)
 
-# def append_menu_item_keyboard(menu_item: MenuItem, order: Order, keyboard: list):
-#     button_caption = f"{menu_item.price} :{menu_item.name}"
-#     order_item = order.get_order_item(menu_item)
-#     items_count = 0
-#     if (order_item != None):
-#         items_count = order_item.count
+def start_command(update: telegram.Update, context: telegram.ext.CallbackContext ):  
+    return start_command_internal(update, reply_to_message)
 
-#     keyboard.append([InlineKeyboardButton(button_caption, callback_data=menu_item.id, resize_keyboard=True)])
-#     keyboard.append([InlineKeyboardButton("+", callback_data=f'operation,{menu_item.id},+'),
-#                     InlineKeyboardButton(f"{items_count}", callback_data=menu_item.id),
-#                     InlineKeyboardButton("-", callback_data=f'operation,{menu_item.id},-')])    
-
-# def append_menu_item_keyboard_for_order(order_item: OrderItem, order: Order, keyboard: list):
+def start_command_internal(update: telegram.Update, reply_func):
     
-#     keyboard.append([InlineKeyboardButton(f"{order_item.name}", callback_data=order_item.id)])
-#     keyboard.append([InlineKeyboardButton("+", callback_data=f'operation,{order_item.id},+'),
-#             InlineKeyboardButton(f"{order_item.count}", callback_data=order_item.id),
-#             InlineKeyboardButton("-", callback_data=f'operation,{order_item.id},-'),
-#             InlineKeyboardButton(text=crossIcon, callback_data = f"operation,{order_item.id},delete")])
+    keyboard = [
+        [InlineKeyboardButton('ההזמנות שלי', callback_data='orders'),
+         InlineKeyboardButton('חנות קפה', callback_data='start_order')]
+    ]
 
-def start_command(update: telegram.Update, context: telegram.ext.CallbackContext):    
-    context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a Camtek food orders bot, please use command /makeorder to order lunch!")    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    reply_func(update, '!אני בוט של החנות קפה. בעזרתי אפשר להזמין את הקפה', reply_markup)
 
-#def make_order_command(update: telegram.Update, context: telegram.ext.CallbackContext):    
+    return START_CONVERSATION
+
+def reply_to_message(update: telegram.Update, answer: str, reply_markup):
+    update.message.reply_text(text=answer, reply_markup = reply_markup)
+
+def reply_to_query(update: telegram.Update, answer: str, reply_markup):
+    query = update.callback_query
+    query.answer()
+
+    query.edit_message_text(text = answer, reply_markup=reply_markup)
+
+def start_conversation_callback_query_handle(update: telegram.Update, context: telegram.ext.CallbackContext):
     
-    # order = Order(update.message.from_user.name, context.chat_data)
-
-    # keyboard = []
-    # for m in menu_group_items:        
-    #     append_menu_group_keyboard(m, keyboard)        
-
-    # reply_markup = InlineKeyboardMarkup(keyboard, row_width = 1)
-    # s = 'נא לבחור'
-    # update.message.reply_text(text = s, reply_markup=reply_markup)
+    query = update.callback_query
+    query.answer()
     
-    #return conversation_state    
+    orderConversationInputData = TelegramBotOrderConversationInputData(update, context)
+    orderConversationRepondent = TelegramBotOrderConversationRepondent(update, context)
 
-# def select_menu_item(update, context):
+    if query.data == 'start_order':        
+        return order_conversation_manager.start_order_command(orderConversationInputData, orderConversationRepondent)     
 
-#     global order
-#     global menu
-#     global current_menu_item 
+    keyboard = []    
+    orders_repository = OrdersRepository(OrderSerializer())
+    user_orders = orders_repository.get_order_names_for_user(query.from_user.name)
 
-#     state = orderstate.SelectMenuItemState()
-#     order, conversation_state = state.callback_query_handler(update, context, order, menu, current_menu_item)
+    if not user_orders or len(user_orders) == 0:
+        return start_command_internal(update, reply_to_query)
 
-#     return conversation_state
-
-# def select_menu_item(update, context):
-#     query = update.callback_query
-#     query.answer()
+    for order in user_orders:     
+        keyboard.append([InlineKeyboardButton(f"{order}", callback_data=order)])
     
-#     global menu
-#     global current_menu_item
-#     global order
-
-#     if (query.data == 'finish_order'):
-#         query.edit_message_text(text = "הזמנה:", reply_markup=create_inline_keyboard_for_order(current_menu_item, order))        
-#         return PLACE_ORDER
-
-#     if (query.data.startswith("menu_group") == True):
-#         arr = query.data.split(':')
-#         current_menu_item = menu.get_menu_item(arr[1])
-#     else:
-#         operationOrderQueryHadler  = OperationOrderQueryHadler()
-#         operationOrderQueryHadler.handle_query(query, menu, order)
-
-#     query.edit_message_text(text = "נא לבחור", reply_markup= create_inline_keyboard_for_menu(current_menu_item, order))
-
-# def create_inline_keyboard_for_menu(menu_group: MenuGroup, order: Order):
+    reply_to_query(update, 'נא לבחור', reply_markup=InlineKeyboardMarkup(keyboard, row_width = 1))
     
-#     keyboard = []    
-#     global current_menu_item
+    return SELECT_EXISTSING_ORDER        
 
-#     for m in menu.get_parent_menu_groups(current_menu_item):        
-#         append_menu_group_keyboard(m, keyboard)        
-
-#     for m in menu.get_menu_items(current_menu_item): 
-#         if (isinstance(m, MenuGroup)):
-#             append_menu_group_keyboard(m, keyboard)       
-#         elif (isinstance(m, MenuItem)):
-#             append_menu_item_keyboard(m, order, keyboard)       
-        
-#     if (len(order.get_order_items()) > 0):
-#         keyboard.append([InlineKeyboardButton(f"{order.get_order_sum()} :סיים הזמנה", callback_data='finish_order')])
-
-#     return InlineKeyboardMarkup(keyboard)  
-
-# def create_inline_keyboard_for_order(menu_group: MenuGroup, order: Order):
+def select_existing_order_callback_query_handle(update: telegram.Update, context: telegram.ext.CallbackContext):
     
-#     keyboard = [] 
-#     append_menu_group_keyboard(menu_group, keyboard)   
+    query = update.callback_query
+    query.answer()
+
+    orders_repository = OrdersRepository(OrderSerializer())
+    order = orders_repository.get_order(query.from_user.name, query.data)
+
+    query.data = OrderConversationInputDataType.FINISH_ORDER.name
+
+    orderConversationInputData = TelegramBotOrderConversationInputData(update, context)
+    orderConversationRepondent = TelegramBotOrderConversationRepondent(update, context)
+
+    return order_conversation_manager.set_order(orderConversationInputData, orderConversationRepondent, order)
+
+def order_callback_query_handle(update, context) -> int:     
     
-#     for order_item in order.get_order_items():        
-#         append_menu_item_keyboard_for_order(order_item, order, keyboard)
+    orderConversationInputData = TelegramBotOrderConversationInputData(update, context)
+    orderConversationRepondent = TelegramBotOrderConversationRepondent(update, context)
 
-#     keyboard.append([InlineKeyboardButton(f"{order.get_order_sum()} :תשלום", callback_data='pay')])
-#     return InlineKeyboardMarkup(keyboard)
+    conversation_state = order_conversation_manager.call_back_handle(orderConversationInputData, orderConversationRepondent)
 
-# def place_order(update, context):    
-#     query = update.callback_query
-#     query.answer()
-
-#     global order
-#     global current_menu_item
-
-#     if (query.data == 'pay'):
-#         keyboard = []
-#         keyboard.append([InlineKeyboardButton(text=f'{checkIcon}סיים', callback_data = "ok"), InlineKeyboardButton(text=f'{crossIcon}לבטל', callback_data = "cancel")])
-#         query.edit_message_text(text = "הזמנה", reply_markup=InlineKeyboardMarkup(keyboard))
-#         return FINISH_ORDER
-    
-#     if (query.data.startswith("menu_group") == True):
-#         arr = query.data.split(':')
-#         current_menu_item = menu.get_menu_item(arr[1])
-#         query.edit_message_text(text = "נא לבחור", reply_markup= create_inline_keyboard_for_menu(current_menu_item, order))        
-#         return SELECT_MENU_ITEM
-    
-#     operationOrderQueryHadler = OperationOrderQueryHadler()
-
-#     if (operationOrderQueryHadler.can_handle_query(query)):
-#         operationOrderQueryHadler.handle_query(query, menu, order)
-    
-#     if (len(order.get_order_items()) > 0):    
-#         query.edit_message_text(text = "הזמנה", reply_markup=create_inline_keyboard_for_order(current_menu_item, order))        
-#     else:
-#         query.edit_message_text(text = "נא לבחור", reply_markup= create_inline_keyboard_for_menu(current_menu_item, order))        
-#         return SELECT_MENU_ITEM
-
-
-# def finish_order(update, context):
-    
-    # query = update.callback_query
-    # query.answer()
-
-    # if (query.data != "ok"):
-    #     query.edit_message_text('ההזמנה שלך בוטלה')
-    #     return
-
-    # global order
-
-    # query.edit_message_text('תודה! ההזמנה שלך נשלחה')
-    # orderSerializer = OrderSerializer()
-    # orderSerializer.serialize(order, 'order.txt')
-    
-    # del order
-
-    # return ConversationHandler.END
-
-def callback_query_handle(update, context):
-    conversation_state = order_conversation_manager.call_back_handle(update, context)
-
-    if (conversation_state == orderstate.FINISH_ORDER):
-        return ConversationHandler.END
+    if (conversation_state == orderstate.OrderStateType.FINISH_ORDER):
+        start_command_internal(update, reply_to_query)
+        return START_CONVERSATION
     else:
         return conversation_state
 
@@ -191,22 +101,21 @@ def cancel(update, context):
 
     return ConversationHandler.END
 
+conv_handler = ConversationHandler(        
+        entry_points=[CommandHandler('start', start_command)],
 
-start_command_handler = CommandHandler('start', start_command)    
-
-conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('makeorder', order_conversation_manager.start_order_command)],
-
-        states={            
-            orderstate.SELECT_MENU_ITEM: [CallbackQueryHandler(callback_query_handle)],            
-            orderstate.PLACE_ORDER: [CallbackQueryHandler(callback_query_handle)],
-            orderstate.PAY_ORDER: [CallbackQueryHandler(callback_query_handle)]
+        states={  
+            START_CONVERSATION: [CallbackQueryHandler(start_conversation_callback_query_handle)],                                  
+            orderstate.OrderStateType.START_ORDER: [CallbackQueryHandler(order_callback_query_handle)],            
+            orderstate.OrderStateType.SELECT_MENU_ITEM: [CallbackQueryHandler(order_callback_query_handle)],            
+            orderstate.OrderStateType.PLACE_ORDER: [CallbackQueryHandler(order_callback_query_handle)],
+            orderstate.OrderStateType.PAY_ORDER: [CallbackQueryHandler(order_callback_query_handle)],
+            SELECT_EXISTSING_ORDER: [CallbackQueryHandler(select_existing_order_callback_query_handle)]
         },
 
         fallbacks=[CommandHandler('cancel', cancel)]
     )
 
 u.dispatcher.add_handler(conv_handler)
-u.dispatcher.add_handler(start_command_handler)
 
 u.start_polling()
