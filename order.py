@@ -82,7 +82,7 @@ class OrdersRepository():
             for file in files:
                 filename, file_extension = os.path.splitext(file)
                 if file_extension == '.json':
-                    orders.append(f'{filename} nis')
+                    orders.append(f'{filename}')
 
         return orders
 
@@ -98,22 +98,3 @@ class OrdersRepository():
 
         order = self.order_serializer.unserialize(file_name)
         return order
-
-# os = OrderSerializer()
-# os1 = OrdersRepository(os)
-# my_order = os1.get_order('Evgeny Shapiro', 'Order 75')
-# print(my_order)
-
-# orders = os1.get_order_names_for_user('User_123')
-# orders = os1.get_order_names_for_user('User_3')
-
-
-# order = Order('my_user', '1123123123')
-# order_item = OrderItem('wqeqw', 'order_item1', 3, 2.5)
-# order.add_or_update_order_item(order_item)
-# order_item = OrderItem('gfdgdfg', 'order_item2', 5, 3.5)
-# order.add_or_update_order_item(order_item)
-
-# os1.save_order_for_user(order)
-# orders = os1.get_order_names_for_user(order.user_id)
-# print(orders)

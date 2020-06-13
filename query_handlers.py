@@ -60,11 +60,3 @@ class OperationOrderQueryHadler(QueryHadlerInterface):
             order.add_or_update_order_item(order_item)
         else:
             order.remove_order_item(order_item.id)
-    
-# string = f'{OrderConversationInputDataType.PAY_ORDER.name}:256'
-# s = string.split(':')
-# a = OrderConversationInputDataType[s[0]]
-
-# string = "pay:sdf:sadsad:asf:asd"
-# s = string.split(':')[1:]
-# print(s)

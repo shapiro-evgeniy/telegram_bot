@@ -7,13 +7,14 @@ from order import (Order, OrderItem, OrderSerializer, OrdersRepository)
 from query_handlers import OperationOrderQueryHadler, OrderConversationInputDataType
 from order_conversation_manager import OrderConversationManager, TelegramBotOrderConversationInputData, TelegramBotOrderConversationRepondent
 import orderstate
+import emoji
 
 order_conversation_manager = OrderConversationManager()
 
 u = Updater('1175700257:AAF9HNQTnA1IOXAas1uShROLU2Jt4_OMwEo', use_context=True)
 j = u.job_queue
-crossIcon = u"\u274C"
-checkIcon = u"\u2705" 
+cup_icon = u"\u2615"
+calendar_icon = u"\U0001F5D2"
 
 START_CONVERSATION, SELECT_EXISTSING_ORDER = range(2)
 
@@ -23,8 +24,8 @@ def start_command(update: telegram.Update, context: telegram.ext.CallbackContext
 def start_command_internal(update: telegram.Update, reply_func):
     
     keyboard = [
-        [InlineKeyboardButton('ההזמנות שלי', callback_data='orders'),
-         InlineKeyboardButton('חנות קפה', callback_data='start_order')]
+        [InlineKeyboardButton((f'{calendar_icon} ההזמנות שלי'), callback_data='orders'),
+         InlineKeyboardButton((f'{cup_icon} חנות קפה'), callback_data='start_order')]
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)

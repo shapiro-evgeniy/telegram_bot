@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from orderstate import OrderConversationInputData, OrderStateType
-#from os import sendfile
+
 import telegram.ext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (MessageHandler, CallbackQueryHandler, Filters, ConversationHandler,Updater,CommandHandler)
